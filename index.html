@@ -35,6 +35,32 @@
         html {
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Custom Scrollbar Styling --- */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--void-black); 
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--deep-red); 
+            border-radius: 5px;
+            border: 2px solid var(--void-black);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--moth-orange); 
+        }
+
+        /* Firefox Scrollbar Support */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--deep-red) var(--void-black);
         }
 
         body {
@@ -405,6 +431,43 @@
             box-shadow: 0 0 8px #ef4444;
         }
 
+        /* Server Select Styling */
+        .server-select-wrapper {
+            margin-top: 1.5rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .server-select {
+            appearance: none;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            padding: 0.8rem 1.5rem;
+            font-family: 'Cinzel', serif;
+            font-size: clamp(0.75rem, 1.5vw, 0.9rem);
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            text-align: center;
+            width: clamp(200px, 50vw, 280px);
+            transition: all 0.3s;
+            border-radius: 2px;
+            text-transform: uppercase;
+        }
+
+        .server-select:hover, .server-select:focus {
+            border-color: var(--moth-orange);
+            color: var(--moth-gold);
+            outline: none;
+            background: rgba(196, 109, 27, 0.1);
+        }
+
+        .server-select option {
+            background-color: var(--void-black);
+            color: var(--off-white);
+            padding: 10px;
+        }
+
         /* Landscape mode optimizations for phones */
         @media (max-height: 500px) and (orientation: landscape) {
             .container-wrapper {
@@ -508,13 +571,26 @@
                 Initiate Test
             </button>
             
+            <div class="server-select-wrapper">
+                <select id="server-select" class="server-select" aria-label="Select test server">
+                    <option value="auto">Server: Auto (Best)</option>
+                    <option value="mum">Mumbai, IN</option>
+                    <option value="del">New Delhi, IN</option>
+                    <option value="blr">Bangalore, IN</option>
+                    <option value="ny">New York, USA</option>
+                    <option value="lon">London, UK</option>
+                    <option value="tok">Tokyo, JP</option>
+                    <option value="syd">Sydney, AU</option>
+                </select>
+            </div>
+            
             <div class="connection-indicator" aria-live="polite">
                 <span class="connection-dot" id="connection-dot"></span>
                 <span id="connection-status">Checking connection...</span>
             </div>
             
             <p class="mt-6 text-xs text-white/20 tracking-widest uppercase">
-                Connection Diagnostics // v2.1.0
+                Connection Diagnostics // v2.3.0
             </p>
         </div>
 
@@ -1051,6 +1127,7 @@
                 jitterEl: document.getElementById('jitter-val'),
                 lossEl: document.getElementById('loss-val'),
                 serverEl: document.getElementById('server-val'),
+                serverSelect: document.getElementById('server-select'),
                 finalDlEl: document.getElementById('final-dl'),
                 finalUlEl: document.getElementById('final-ul'),
                 estimatesBox: document.getElementById('estimates-box'),
@@ -1060,6 +1137,8 @@
                 connectionDot: document.getElementById('connection-dot'),
                 connectionStatus: document.getElementById('connection-status')
             },
+
+            selectedServer: 'auto',
 
             updateSpeed(speedMbps) {
                 const speed = Math.max(0, speedMbps || 0);
@@ -1139,6 +1218,8 @@
 
             showHome() {
                 this.elements.workingPage.classList.remove('active');
+                // Scroll to top when resetting
+                window.scrollTo({ top: 0, behavior: 'smooth' });
                 setTimeout(() => {
                     this.reset();
                     this.elements.homePage.classList.add('active');
@@ -1146,6 +1227,11 @@
             },
 
             showWorking() {
+                // Get selected server
+                this.selectedServer = this.elements.serverSelect.value;
+                const serverLabel = this.elements.serverSelect.options[this.elements.serverSelect.selectedIndex].text;
+                this.elements.serverEl.textContent = serverLabel.replace("Server: ", "");
+                
                 this.elements.homePage.classList.remove('active');
                 setTimeout(() => {
                     this.elements.workingPage.classList.add('active');
@@ -1161,6 +1247,14 @@
                 
                 this.elements.restartBtn.classList.remove('opacity-0', 'pointer-events-none');
                 this.elements.restartBtn.classList.add('pointer-events-auto', 'opacity-100');
+                
+                // Auto-scroll to results
+                setTimeout(() => {
+                    const resultsContainer = this.elements.estimatesBox;
+                    if (resultsContainer) {
+                        resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
             }
         };
 
