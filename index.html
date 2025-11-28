@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Silence of the Lags | Speed Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --moth-gold: #d4af37;
+            --moth-orange: #c46d1b;
+            --deep-red: #8a0b0b;
+            --off-white: #e8e8e8;
+            --void-black: #050505;
+            --overlay-black: rgba(0, 0, 0, 0.85);
+        }
+
+        body {
+            background-color: var(--void-black);
+            color: var(--off-white);
+            font-family: 'Cinzel', serif;
+            overflow: hidden; /* Prevent scrollbars during animations */
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Typography Override for Data */
+        .font-data {
+            font-family: 'Lato', sans-serif;
+        }
+
+        /* Background Visualizer Canvas */
+        #visualizer-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15; /* Subtle background effect */
+            pointer-events: none;
+        }
+
+        /* Main Container */
+        .container-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 1400px; /* Increased for wider screens */
+            padding: 2rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        /* Ghost Button Styling */
+        .ghost-btn {
+            background: transparent;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            color: var(--off-white);
+            padding: 1.5rem 4rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(2px);
+            white-space: nowrap;
+        }
+
+        .ghost-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: 0.5s;
+        }
+
+        .ghost-btn:hover {
+            border-color: var(--deep-red);
+            color: var(--deep-red);
+            text-shadow: 0 0 10px rgba(138, 11, 11, 0.5);
+            box-shadow: 0 0 20px rgba(138, 11, 11, 0.2);
+        }
+
+        .ghost-btn:hover::before {
+            left: 100%;
+        }
+
+        /* Progress Bar Styling */
+        .speed-bar-container {
+            width: 100%;
+            max-width: 600px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 2rem;
+            position: relative;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        .speed-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--deep-red), var(--moth-orange));
+            width: 0%;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px var(--deep-red);
+        }
+
+        /* Page Transitions */
+        .page {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            max-width: 900px; /* Slightly wider for new stats */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.8s ease-in-out, visibility 0.8s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .page.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            width: 100%;
+            margin-top: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 2rem;
+            }
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.25rem;
+            text-align: center;
+            transition: transform 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .stat-card:hover {
+            border-color: var(--moth-orange);
+            background: rgba(196, 109, 27, 0.05);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            color: #888;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-family: 'Lato', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 300;
+            color: var(--off-white);
+        }
+
+        .stat-unit {
+            font-size: 0.7rem;
+            color: #666;
+            margin-left: 2px;
+        }
+
+        /* Main Speed Display */
+        .speed-display-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .main-speed-display {
+            font-size: 12vw; /* Responsive font size */
+            font-weight: 900;
+            line-height: 0.9;
+            margin: 0.5rem 0;
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(180deg, var(--off-white) 0%, #888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        @media (min-width: 1024px) {
+            .main-speed-display {
+                font-size: 7rem;
+            }
+        }
+        
+        .main-unit {
+            font-size: 1.2rem;
+            letter-spacing: 0.3em;
+            color: var(--deep-red);
+            font-family: 'Cinzel', serif;
+            margin-top: -0.5rem;
+        }
+
+        .mb-per-sec {
+            font-family: 'Lato', sans-serif;
+            color: var(--moth-orange);
+            font-size: 1rem;
+            opacity: 0.7;
+            margin-top: 0.5rem;
+            letter-spacing: 0.05em;
+            font-weight: 300;
+        }
+
+        /* Estimates Grid */
+        .estimates-container {
+            width: 100%;
+            margin-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 1.5rem;
+            display: none; /* Hidden until results */
+            animation: fadeIn 1s ease forwards;
+        }
+
+        .estimates-title {
+            font-size: 0.8rem;
+            color: var(--moth-gold);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+
+        .estimates-grid {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .estimate-item {
+            text-align: center;
+        }
+
+        .estimate-label {
+            font-size: 0.7rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.25rem;
+        }
+
+        .estimate-time {
+            font-family: 'Lato', sans-serif;
+            font-size: 1.1rem;
+            color: var(--off-white);
+        }
+
+        /* Subtle Moth/Wing Graphic (CSS Shapes) */
+        .moth-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vmin;
+            height: 80vmin;
+            background: radial-gradient(circle, rgba(138, 11, 11, 0.05) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Fixes */
+        @media (max-width: 480px) {
+            .ghost-btn {
+                padding: 1.2rem 2.5rem;
+                font-size: 1.1rem;
+            }
+            .stats-grid {
+                gap: 1rem;
+            }
+            .stat-card {
+                padding: 1rem;
+            }
+            .main-speed-display {
+                font-size: 18vw;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Background Dynamic Canvas -->
+    <canvas id="visualizer-canvas"></canvas>
+
+    <!-- Content Container -->
+    <div class="container-wrapper">
+        <div class="moth-bg"></div>
+
+        <!-- Home Page -->
+        <div id="home-page" class="page active">
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold mb-2 tracking-widest text-white/90 text-center">SILENCE</h1>
+            <p class="text-lg md:text-xl text-white/40 mb-12 tracking-[0.5em] uppercase text-center">of the Lags</p>
+            
+            <button id="start-btn" class="ghost-btn">
+                Initiate Test
+            </button>
+            
+            <p class="mt-8 text-xs text-white/20 tracking-widest uppercase">
+                Connection Diagnostics // v2.1.0
+            </p>
+        </div>
+
+        <!-- Working Page -->
+        <div id="working-page" class="page">
+            <div class="status-text mb-4 text-red-700 tracking-[0.3em] uppercase text-sm font-bold" id="status-text">Connecting...</div>
+
+            <!-- Main Big Number -->
+            <div class="speed-display-wrapper">
+                <div class="main-speed-display" id="main-speed">0.00</div>
+                <div class="main-unit">Mbps</div>
+                <!-- New Capital MB/s display -->
+                <div class="mb-per-sec" id="mb-speed">0.00 MB/s</div>
+            </div>
+
+            <!-- Smooth Speedometer Bar -->
+            <div class="speed-bar-container">
+                <div class="speed-bar-fill" id="speed-bar"></div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Ping</div>
+                    <div class="stat-value" id="ping-val">--</div>
+                    <span class="stat-unit">ms</span>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Jitter</div>
+                    <div class="stat-value" id="jitter-val">--</div>
+                    <span class="stat-unit">ms</span>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Loss</div>
+                    <div class="stat-value" id="loss-val">--</div>
+                    <span class="stat-unit">%</span>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Server</div>
+                    <div class="stat-value text-sm" style="font-size: 1rem;">Auto</div>
+                </div>
+            </div>
+
+            <!-- Download Estimates (Hidden until finish) -->
+            <div class="estimates-container" id="estimates-box">
+                <div class="estimates-title">Real-World Performance</div>
+                <div class="estimates-grid">
+                    <div class="estimate-item">
+                        <div class="estimate-label">100MB Asset</div>
+                        <div class="estimate-time" id="time-100mb">--s</div>
+                    </div>
+                    <div class="estimate-item">
+                        <div class="estimate-label">1GB File</div>
+                        <div class="estimate-time" id="time-1gb">--s</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secondary Results (Download/Upload final numbers) -->
+            <div class="flex justify-center gap-12 mt-8 opacity-50" id="final-results">
+                <div class="text-center">
+                    <div class="text-xs uppercase tracking-widest text-gray-500 mb-1">Download</div>
+                    <div class="text-xl font-bold text-white" id="final-dl">--</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs uppercase tracking-widest text-gray-500 mb-1">Upload</div>
+                    <div class="text-xl font-bold text-white" id="final-ul">--</div>
+                </div>
+            </div>
+            
+             <button id="restart-btn" class="ghost-btn mt-8 text-sm px-8 py-4 opacity-0 pointer-events-none transition-opacity duration-500" style="font-size: 1rem;">
+                Retest
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- VISUALIZER CANVAS SETUP ---
+        const canvas = document.getElementById('visualizer-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let bars = [];
+        const barCount = 60; 
+        
+        let currentEnergy = 0; 
+        let targetEnergy = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initBars();
+        }
+
+        function initBars() {
+            bars = [];
+            const barWidth = width / barCount;
+            for (let i = 0; i < barCount; i++) {
+                bars.push({
+                    x: i * barWidth,
+                    y: height,
+                    w: barWidth - 2, 
+                    h: 0,
+                    targetH: 0,
+                    speed: Math.random() * 0.1 + 0.05
+                });
+            }
+        }
+
+        function animateBars() {
+            ctx.clearRect(0, 0, width, height);
+            currentEnergy += (targetEnergy - currentEnergy) * 0.05;
+
+            bars.forEach((bar, i) => {
+                const wave = Math.sin(i * 0.2 + Date.now() * 0.002) * 20;
+                const noise = Math.random() * (currentEnergy * 2); 
+                const maxH = (height * 0.4) * (currentEnergy / 100); 
+                const idleH = Math.sin(i * 0.1 + Date.now() * 0.001) * 20 + 30;
+
+                let h = (currentEnergy > 1 ? maxH : idleH) + wave + noise;
+                if (h < 0) h = 0;
+
+                const gradient = ctx.createLinearGradient(bar.x, height - h, bar.x, height);
+                gradient.addColorStop(0, `rgba(138, 11, 11, ${0.1 + (currentEnergy/200)})`); 
+                gradient.addColorStop(1, 'rgba(196, 109, 27, 0)'); 
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(bar.x, height - h, bar.w, h);
+            });
+
+            requestAnimationFrame(animateBars);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        animateBars();
+
+        // --- SPEED TEST LOGIC ---
+        const homePage = document.getElementById('home-page');
+        const workingPage = document.getElementById('working-page');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const mainSpeedEl = document.getElementById('main-speed');
+        const mbSpeedEl = document.getElementById('mb-speed'); // New Element
+        const speedBar = document.getElementById('speed-bar');
+        const statusText = document.getElementById('status-text');
+        
+        // Stats Elements
+        const pingEl = document.getElementById('ping-val');
+        const jitterEl = document.getElementById('jitter-val');
+        const lossEl = document.getElementById('loss-val');
+        const finalDlEl = document.getElementById('final-dl');
+        const finalUlEl = document.getElementById('final-ul');
+        
+        // Estimates Elements
+        const estimatesBox = document.getElementById('estimates-box');
+        const time100mb = document.getElementById('time-100mb');
+        const time1gb = document.getElementById('time-1gb');
+
+        startBtn.addEventListener('click', startTest);
+        restartBtn.addEventListener('click', resetTest);
+
+        function startTest() {
+            homePage.classList.remove('active');
+            setTimeout(() => {
+                workingPage.classList.add('active');
+                runSimulation();
+            }, 800);
+        }
+        
+        function resetTest() {
+             workingPage.classList.remove('active');
+             setTimeout(() => {
+                 // Reset values
+                 mainSpeedEl.innerText = "0.00";
+                 mbSpeedEl.innerText = "0.00 MB/s";
+                 speedBar.style.width = "0%";
+                 pingEl.innerText = "--";
+                 jitterEl.innerText = "--";
+                 lossEl.innerText = "--";
+                 finalDlEl.innerText = "--";
+                 finalUlEl.innerText = "--";
+                 estimatesBox.style.display = 'none';
+                 statusText.innerText = "Connecting...";
+                 statusText.style.color = "#8a0b0b";
+                 restartBtn.classList.remove('pointer-events-auto', 'opacity-100');
+                 restartBtn.classList.add('opacity-0', 'pointer-events-none');
+                 targetEnergy = 0;
+                 
+                 homePage.classList.add('active');
+             }, 800);
+        }
+
+        function runSimulation() {
+            // Phase 1: Ping & Jitter
+            statusText.innerText = "Establish Ping...";
+            targetEnergy = 10;
+            
+            let pings = 0;
+            const pingInterval = setInterval(() => {
+                const p = Math.floor(Math.random() * 20) + 10;
+                pingEl.innerText = p;
+                jitterEl.innerText = Math.floor(Math.random() * 5);
+                lossEl.innerText = "0.0";
+                pings++;
+                if(pings > 10) {
+                    clearInterval(pingInterval);
+                    startDownloadPhase();
+                }
+            }, 100);
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 60) return `${seconds.toFixed(1)} sec`;
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}m ${secs}s`;
+        }
+
+        function calculateEstimates(speedMbps) {
+            if (speedMbps <= 0) return;
+            // 1 Byte = 8 bits
+            const speedMBps = speedMbps / 8;
+            
+            // 100 MB
+            const timeFor100 = 100 / speedMBps;
+            time100mb.innerText = formatTime(timeFor100);
+            
+            // 1 GB = 1024 MB
+            const timeFor1GB = 1024 / speedMBps;
+            time1gb.innerText = formatTime(timeFor1GB);
+        }
+
+        function startDownloadPhase() {
+            statusText.innerText = "Testing Download...";
+            statusText.style.color = "#c46d1b"; // Orange for DL
+            let speed = 0;
+            let maxSpeed = 0;
+            const targetSpeed = Math.random() * 300 + 100; // Simulated speed range
+            let progress = 0;
+
+            const dlInterval = setInterval(() => {
+                progress += 0.5;
+                
+                if (speed < targetSpeed) {
+                    speed += (Math.random() * 15) + 2;
+                } else {
+                    speed = targetSpeed + (Math.random() * 20 - 10);
+                }
+
+                // Update Visuals
+                mainSpeedEl.innerText = speed.toFixed(2);
+                
+                // Update MB/s display
+                const mbSpeed = speed / 8;
+                mbSpeedEl.innerText = mbSpeed.toFixed(2) + " MB/s";
+
+                speedBar.style.width = Math.min(progress, 50) * 2 + "%";
+                targetEnergy = (speed / 400) * 100; 
+
+                if (progress >= 100) {
+                    clearInterval(dlInterval);
+                    maxSpeed = speed;
+                    finalDlEl.innerText = maxSpeed.toFixed(0) + " Mbps";
+                    
+                    // Calculate and show estimates
+                    calculateEstimates(maxSpeed);
+                    estimatesBox.style.display = 'block';
+
+                    // Brief pause before Upload
+                    targetEnergy = 5;
+                    speedBar.style.width = "0%";
+                    setTimeout(startUploadPhase, 500);
+                }
+            }, 30);
+        }
+
+        function startUploadPhase() {
+            statusText.innerText = "Testing Upload...";
+            statusText.style.color = "#8a0b0b"; // Red for UL
+            let speed = 0;
+            const targetSpeed = Math.random() * 50 + 20; 
+            let progress = 0;
+
+            const ulInterval = setInterval(() => {
+                progress += 0.5;
+                
+                if (speed < targetSpeed) {
+                    speed += (Math.random() * 5) + 1;
+                } else {
+                    speed = targetSpeed + (Math.random() * 5 - 2.5);
+                }
+
+                mainSpeedEl.innerText = speed.toFixed(2);
+                // Also update MB/s for upload context
+                mbSpeedEl.innerText = (speed/8).toFixed(2) + " MB/s";
+                
+                speedBar.style.width = progress + "%";
+                targetEnergy = (speed / 100) * 80;
+
+                if (progress >= 100) {
+                    clearInterval(ulInterval);
+                    finalUlEl.innerText = speed.toFixed(0) + " Mbps";
+                    finishTest();
+                }
+            }, 30);
+        }
+
+        function finishTest() {
+            targetEnergy = 0; // Bars calm down
+            statusText.innerText = "Analysis Complete";
+            statusText.style.color = "#e8e8e8";
+            speedBar.style.width = "100%";
+            mainSpeedEl.innerText = "DONE";
+            mbSpeedEl.innerText = "--"; // Clear MB/s since test is done
+            
+            // Show restart button
+            restartBtn.classList.remove('opacity-0', 'pointer-events-none');
+            restartBtn.classList.add('pointer-events-auto', 'opacity-100');
+        }
+
+    </script>
+</body>
+</html>
