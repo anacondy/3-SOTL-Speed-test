@@ -146,7 +146,8 @@ npm run build
 - **HTML5** - Semantic markup with accessibility features
 - **CSS3** - Responsive design with CSS variables and media queries
 - **JavaScript ES6+** - Modern async/await patterns with Fetch API
-- **Tailwind CSS** - Utility-first styling framework
+- **Tailwind CSS** - Utility classes for layout
+- **Custom CSS** - Main styling with CSS custom properties
 - **Electron** - Cross-platform desktop application framework
 - **Capacitor** - Native mobile app wrapper
 

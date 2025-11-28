@@ -8,9 +8,15 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  packages: read
+
 jobs:
   build-web:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,6 +46,8 @@ jobs:
             platform: macos
 
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout
@@ -179,6 +187,8 @@ jobs:
 
   build-android:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -257,6 +267,8 @@ jobs:
     needs: [build-web, build-electron, build-android]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
     
     steps:
       - name: Download all artifacts
