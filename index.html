@@ -601,7 +601,8 @@
         function startTest() {
             selectedServer = serverSelect.value;
             const serverLabel = serverSelect.options[serverSelect.selectedIndex].text;
-            activeServerName.innerText = serverLabel.replace("Server: ", "");
+            // Remove prefixes for display
+            activeServerName.innerText = serverLabel.replace("Server: ", "").replace("Nearby - ", "");
 
             homePage.classList.remove('active');
             setTimeout(() => {
