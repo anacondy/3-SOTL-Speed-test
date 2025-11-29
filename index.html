@@ -504,17 +504,117 @@
             }
         }
 
-        /* Large desktop/TV screens */
-        @media (min-width: 2560px) {
+        /* Large desktop screens (1920px+) */
+        @media (min-width: 1920px) {
             .container-wrapper {
-                max-width: 2000px;
+                max-width: 1800px;
             }
             .main-speed-display {
-                font-size: 12rem;
+                font-size: 10rem;
             }
             .ghost-btn {
-                font-size: 2rem;
-                padding: 2rem 5rem;
+                font-size: 1.8rem;
+                padding: 1.8rem 4.5rem;
+            }
+            .stat-card {
+                padding: 1.75rem;
+            }
+            .stat-label {
+                font-size: 0.9rem;
+            }
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            .server-select {
+                font-size: 1rem;
+                padding: 1rem 2rem;
+            }
+            h1 {
+                font-size: 5rem !important;
+            }
+        }
+
+        /* Very large desktop/curved screens (2560px+) */
+        @media (min-width: 2560px) {
+            .container-wrapper {
+                max-width: 2200px;
+            }
+            .main-speed-display {
+                font-size: 14rem;
+            }
+            .ghost-btn {
+                font-size: 2.2rem;
+                padding: 2.2rem 6rem;
+                letter-spacing: 0.4em;
+            }
+            .stat-card {
+                padding: 2rem;
+            }
+            .stat-label {
+                font-size: 1rem;
+            }
+            .stat-value {
+                font-size: 1.8rem;
+            }
+            .main-unit {
+                font-size: 1.8rem;
+            }
+            .mb-per-sec {
+                font-size: 1.4rem;
+            }
+            .server-select {
+                font-size: 1.1rem;
+                padding: 1.2rem 2.5rem;
+                width: 350px;
+            }
+            .connection-indicator {
+                font-size: 1rem;
+            }
+            h1 {
+                font-size: 6rem !important;
+            }
+            p.text-lg {
+                font-size: 1.5rem !important;
+            }
+        }
+
+        /* 4K and ultra-large screens (3840px+) */
+        @media (min-width: 3840px) {
+            .container-wrapper {
+                max-width: 3000px;
+            }
+            .main-speed-display {
+                font-size: 18rem;
+            }
+            .ghost-btn {
+                font-size: 3rem;
+                padding: 3rem 8rem;
+            }
+            .stat-card {
+                padding: 2.5rem;
+            }
+            .stat-label {
+                font-size: 1.2rem;
+            }
+            .stat-value {
+                font-size: 2.2rem;
+            }
+            .main-unit {
+                font-size: 2.2rem;
+            }
+            .mb-per-sec {
+                font-size: 1.8rem;
+            }
+            .server-select {
+                font-size: 1.4rem;
+                padding: 1.5rem 3rem;
+                width: 450px;
+            }
+            h1 {
+                font-size: 8rem !important;
+            }
+            p.text-lg {
+                font-size: 2rem !important;
             }
         }
 

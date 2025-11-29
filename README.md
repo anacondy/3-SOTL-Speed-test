@@ -33,6 +33,11 @@
 
 *Home screen with elegant dark theme and connection status indicator*
 
+### Server Selection
+![Server Selection](https://github.com/user-attachments/assets/8c9f9afb-bc55-493c-b274-4772620fcdca)
+
+*Server selection dropdown with multiple global locations*
+
 ### Speed Test Results
 ![Speed Test Results](https://github.com/user-attachments/assets/32ddba94-b943-41ab-bd3c-728b84bc9a6c)
 
@@ -41,12 +46,12 @@
 ### Mobile View
 ![Mobile View](https://github.com/user-attachments/assets/8730f93a-c9bf-4122-8f95-ad20776e604f)
 
-*Fully responsive design optimized for mobile devices*
+*Fully responsive design optimized for mobile devices (16:9, 20:9 aspect ratios)*
 
 ### Ultra-Wide Display
 ![Ultra-Wide View](https://github.com/user-attachments/assets/41c4f53a-fd4c-41af-b4a0-e0125dc33ccb)
 
-*Optimized layout for ultra-wide monitors (21:9 and wider)*
+*Optimized layout for ultra-wide monitors (21:9 and wider) and curved displays*
 
 ---
 

@@ -27,15 +27,17 @@ jobs:
           cp index.html dist/web/
           cp LICENSE dist/web/
           cp README.md dist/web/
+          zip -r web-app.zip dist/web/
       
       - name: Upload web artifact
         uses: actions/upload-artifact@v4
         with:
           name: web-app
-          path: dist/web
+          path: web-app.zip
 
   build-electron:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -68,7 +70,7 @@ jobs:
           cat > electron-app/package.json << 'EOF'
           {
             "name": "silence-of-the-lags",
-            "version": "2.1.0",
+            "version": "2.3.0",
             "description": "A minimal, elegant internet speed test application",
             "main": "main.js",
             "author": "Anuj Meena",
@@ -216,7 +218,7 @@ jobs:
           cat > package.json << 'EOF'
           {
             "name": "silence-of-the-lags-mobile",
-            "version": "2.1.0",
+            "version": "2.3.0",
             "description": "Internet speed test mobile app",
             "main": "index.js",
             "scripts": {
@@ -266,21 +268,65 @@ jobs:
   create-release:
     needs: [build-web, build-electron, build-android]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
+      - name: Display downloaded artifacts
+        run: ls -la artifacts/
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "version=v2.3.0-$(date +%Y%m%d)-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Silence of the Lags ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          generate_release_notes: true
+          body: |
+            ## 📦 Downloads
+            
+            ### Desktop Applications
+            | Platform | Download | Min Requirements |
+            |----------|----------|------------------|
+            | **Windows** | `silence-of-the-lags-Setup.exe` | Windows 10+, 100MB storage |
+            | **macOS** | `silence-of-the-lags.dmg` | macOS 10.15+, 100MB storage |
+            | **Linux** | `silence-of-the-lags.AppImage` | Ubuntu 18.04+, 100MB storage |
+            
+            ### Mobile Applications
+            | Platform | Download | Min Requirements |
+            |----------|----------|------------------|
+            | **Android** | `app-debug.apk` | Android 7.0+, 50MB storage |
+            
+            ### Web Application
+            | Platform | Access |
+            |----------|--------|
+            | **Web Browser** | [Launch Speed Test](https://anacondy.github.io/3-SOTL-Speed-test/) |
+            
+            ## 🔧 Installation
+            
+            **Windows**: Run the `.exe` installer
+            **macOS**: Open `.dmg` and drag to Applications
+            **Linux**: Make `.AppImage` executable and run
+            **Android**: Enable "Install from Unknown Sources" and install APK
           files: |
             artifacts/**/*
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
