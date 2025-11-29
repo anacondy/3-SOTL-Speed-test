@@ -1,0 +1,332 @@
+# Build cross-platform applications
+name: Build Cross-Platform Apps
+
+on:
+  push:
+    branches: ["main"]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build-web:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Create web distribution
+        run: |
+          mkdir -p dist/web
+          cp index.html dist/web/
+          cp LICENSE dist/web/
+          cp README.md dist/web/
+          zip -r web-app.zip dist/web/
+      
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-app
+          path: web-app.zip
+
+  build-electron:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+          - os: macos-latest
+            platform: macos
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Create Electron package structure
+        shell: bash
+        run: |
+          mkdir -p electron-app
+          cp index.html electron-app/
+          
+          # Create package.json for Electron
+          cat > electron-app/package.json << 'EOF'
+          {
+            "name": "silence-of-the-lags",
+            "version": "2.3.0",
+            "description": "A minimal, elegant internet speed test application",
+            "main": "main.js",
+            "author": "Anuj Meena",
+            "license": "MIT",
+            "scripts": {
+              "start": "electron .",
+              "build": "electron-builder"
+            },
+            "devDependencies": {
+              "electron": "^28.0.0",
+              "electron-builder": "^24.9.1"
+            },
+            "build": {
+              "appId": "com.sotl.speedtest",
+              "productName": "Silence of the Lags",
+              "directories": {
+                "output": "dist"
+              },
+              "files": [
+                "main.js",
+                "index.html"
+              ],
+              "linux": {
+                "target": ["AppImage", "deb"],
+                "category": "Utility"
+              },
+              "win": {
+                "target": ["nsis", "portable"]
+              },
+              "mac": {
+                "target": ["dmg", "zip"],
+                "category": "public.app-category.utilities"
+              }
+            }
+          }
+          EOF
+          
+          # Create Electron main.js
+          cat > electron-app/main.js << 'EOF'
+          const { app, BrowserWindow, Menu } = require('electron');
+          const path = require('path');
+          
+          function createWindow() {
+            const mainWindow = new BrowserWindow({
+              width: 1200,
+              height: 800,
+              minWidth: 360,
+              minHeight: 640,
+              webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true
+              },
+              icon: path.join(__dirname, 'icon.png'),
+              backgroundColor: '#050505',
+              show: false
+            });
+          
+            // Remove menu bar for cleaner look
+            Menu.setApplicationMenu(null);
+          
+            mainWindow.loadFile('index.html');
+            
+            mainWindow.once('ready-to-show', () => {
+              mainWindow.show();
+            });
+          }
+          
+          app.whenReady().then(() => {
+            createWindow();
+          
+            app.on('activate', function () {
+              if (BrowserWindow.getAllWindows().length === 0) createWindow();
+            });
+          });
+          
+          app.on('window-all-closed', function () {
+            if (process.platform !== 'darwin') app.quit();
+          });
+          EOF
+
+      - name: Install dependencies
+        working-directory: electron-app
+        run: npm install
+
+      - name: Build Electron app
+        working-directory: electron-app
+        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Linux artifacts
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-app
+          path: |
+            electron-app/dist/*.AppImage
+            electron-app/dist/*.deb
+
+      - name: Upload Windows artifacts
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-app
+          path: |
+            electron-app/dist/*.exe
+
+      - name: Upload macOS artifacts
+        if: matrix.platform == 'macos'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: |
+            electron-app/dist/*.dmg
+            electron-app/dist/*.zip
+
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Capacitor and dependencies
+        run: |
+          mkdir -p capacitor-app
+          cd capacitor-app
+          
+          # Create package.json
+          cat > package.json << 'EOF'
+          {
+            "name": "silence-of-the-lags-mobile",
+            "version": "2.3.0",
+            "description": "Internet speed test mobile app",
+            "main": "index.js",
+            "scripts": {
+              "build": "echo 'No build step for static files'"
+            },
+            "devDependencies": {
+              "@capacitor/android": "^5.0.0",
+              "@capacitor/cli": "^5.0.0",
+              "@capacitor/core": "^5.0.0"
+            }
+          }
+          EOF
+          
+          npm install
+          
+          # Create www folder with the app
+          mkdir -p www
+          cp ../index.html www/
+          
+          # Create Capacitor config
+          cat > capacitor.config.json << 'EOF'
+          {
+            "appId": "com.sotl.speedtest",
+            "appName": "Silence of the Lags",
+            "webDir": "www",
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          EOF
+          
+          # Initialize Android platform
+          npx cap add android
+
+      - name: Build Android APK
+        run: |
+          cd capacitor-app/android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app
+          path: capacitor-app/android/app/build/outputs/apk/debug/*.apk
+
+  create-release:
+    needs: [build-web, build-electron, build-android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display downloaded artifacts
+        run: ls -la artifacts/
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "version=v2.3.0-$(date +%Y%m%d)-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Silence of the Lags ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          generate_release_notes: true
+          body: |
+            ## 📦 Downloads
+            
+            ### Desktop Applications
+            | Platform | Download | Min Requirements |
+            |----------|----------|------------------|
+            | **Windows** | `silence-of-the-lags-Setup.exe` | Windows 10+, 100MB storage |
+            | **macOS** | `silence-of-the-lags.dmg` | macOS 10.15+, 100MB storage |
+            | **Linux** | `silence-of-the-lags.AppImage` | Ubuntu 18.04+, 100MB storage |
+            
+            ### Mobile Applications
+            | Platform | Download | Min Requirements |
+            |----------|----------|------------------|
+            | **Android** | `app-debug.apk` | Android 7.0+, 50MB storage |
+            
+            ### Web Application
+            | Platform | Access |
+            |----------|--------|
+            | **Web Browser** | [Launch Speed Test](https://anacondy.github.io/3-SOTL-Speed-test/) |
+            
+            ## 🔧 Installation
+            
+            **Windows**: Run the `.exe` installer
+            **macOS**: Open `.dmg` and drag to Applications
+            **Linux**: Make `.AppImage` executable and run
+            **Android**: Enable "Install from Unknown Sources" and install APK
+          files: |
+            artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
